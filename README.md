@@ -24,3 +24,8 @@ Make sure to also download the necessary spaCy model for evaluation:
 ```bash
 python -m spacy download en_core_web_sm
 ```
+
+Inicialize the fastapi app:
+```bash
+uvicorn main:app --reload
+```

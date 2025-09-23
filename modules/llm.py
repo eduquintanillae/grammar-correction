@@ -20,12 +20,20 @@ class LLM:
         messages.append({"role": "user", "content": prompt})
 
         initial_time = time.time()
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            max_tokens=1500,
-            stream=False,
-        )
+        if self.model_name == "gpt-4.1-mini":
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                max_tokens=1500,
+                stream=False,
+            )
+        elif self.model_name == "gpt-5-mini":
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                max_completion_tokens=1500,
+                stream=False,
+            )
         total_time = time.time() - initial_time
 
         model_response = response.choices[0].message.content.strip()

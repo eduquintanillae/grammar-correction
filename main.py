@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
 from modules.gec import GrammarErrorCorrector
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
 
 load_dotenv()
 
@@ -16,8 +18,11 @@ async def health_check():
 
 
 @app.post("/correct_grammar")
-async def correct_grammar(text: str, model: str = "gpt-5-mini"):
+async def correct_grammar(request: Request):
     try:
+        data = await request.json()
+        text = data.get("text", "")
+        model = data.get("model", "gpt-4.1-mini")
         gec = GrammarErrorCorrector(model)
         response = gec.correct(text)
         return {
@@ -27,3 +32,7 @@ async def correct_grammar(text: str, model: str = "gpt-5-mini"):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

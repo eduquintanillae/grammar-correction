@@ -1,24 +1,18 @@
-from llm import LLM
 import pandas as pd
 from nltk.translate.gleu_score import sentence_gleu
 import errant
+from gec import GrammarErrorCorrector
 
 
 class Evaluator:
     def __init__(self, model_name, dataset_path):
-        self.llm = LLM(model_name)
+        self.gec = GrammarErrorCorrector(model_name)
         self.dataset = self.load_dataset(dataset_path)
         self.annotator = errant.load("en")
 
     def load_dataset(self, path):
         df = pd.read_csv(path)
         return df
-
-    def predict(self, text):
-        system_prompt = "You are a helpful assistant that corrects grammar mistakes."
-        prompt = f"Correct the following sentence: '{text}'"
-        prediction = self.llm.generate(prompt=prompt, system_prompt=system_prompt)
-        return prediction
 
     def evaluate_errant(self, incorrect_text, corrected_text, predicted_text, metrics):
         try:
@@ -63,12 +57,17 @@ class Evaluator:
 
         return metrics
 
+    def evaluate_gleu(self, reference_tokens, prediction_tokens, metrics):
+        metrics["gleu"] = sentence_gleu([reference_tokens], prediction_tokens)
+        return metrics
+
     def evaluate(self, incorrect_text, corrected_text, predicted_text):
         metrics = {}
         reference_tokens = corrected_text.split()
         prediction_tokens = predicted_text.split()
 
-        metrics["gleu"] = sentence_gleu([reference_tokens], prediction_tokens)
+        metrics = self.evaluate_gleu(reference_tokens, prediction_tokens, metrics)
+
         metrics = self.evaluate_errant(
             incorrect_text, corrected_text, predicted_text, metrics
         )
@@ -76,12 +75,12 @@ class Evaluator:
         return metrics
 
     def run_evaluation(self):
-        self.dataset["model_name"] = self.llm.model_name
+        self.dataset["model_name"] = self.gec.model_name
         for i, row in self.dataset.iterrows():
             print(f"Evaluating row {i + 1}/{len(self.dataset)}")
             incorrect_text = row["incorrect_sentence"]
             corrected_text = row["correct_sentence"]
-            prediction = self.predict(incorrect_text)
+            prediction = self.gec.correct(incorrect_text)
             self.dataset.at[i, "predicted_sentence"] = prediction["model_response"]
             self.dataset.at[i, "total_time"] = prediction["total_time"]
             evaluation = self.evaluate(
@@ -95,6 +94,10 @@ class Evaluator:
 
 
 if __name__ == "__main__":
-    evaluator = Evaluator("gpt-5-mini", "data/data.csv")
+    timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+    model_name = "gpt-4.1-mini"
+    evaluator = Evaluator(model_name, "data/data.csv")
     evaluator.run_evaluation()
-    evaluator.dataset.to_csv("data/evaluation_results.csv", index=False)
+    evaluator.dataset.to_csv(
+        f"data/evaluation_results_{model_name}_{timestamp}.csv", index=False
+    )
