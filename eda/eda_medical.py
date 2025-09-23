@@ -1,6 +1,6 @@
 import pandas as pd
 import nltk
-from llm import LLM
+from modules.llm import LLM
 
 nltk.download("punkt")
 
