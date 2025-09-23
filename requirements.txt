@@ -5,3 +5,4 @@ python-dotenv==1.1.1
 matplotlib==3.10.6
 seaborn==0.13.2
 errant==3.0.0
+fastapi==0.117.1

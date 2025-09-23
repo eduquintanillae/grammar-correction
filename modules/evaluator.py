@@ -76,6 +76,7 @@ class Evaluator:
         return metrics
 
     def run_evaluation(self):
+        self.dataset["model_name"] = self.llm.model_name
         for i, row in self.dataset.iterrows():
             print(f"Evaluating row {i + 1}/{len(self.dataset)}")
             incorrect_text = row["incorrect_sentence"]
@@ -94,6 +95,6 @@ class Evaluator:
 
 
 if __name__ == "__main__":
-    evaluator = Evaluator("gpt-4.1-mini", "data/data.csv")
+    evaluator = Evaluator("gpt-5-mini", "data/data.csv")
     evaluator.run_evaluation()
     evaluator.dataset.to_csv("data/evaluation_results.csv", index=False)

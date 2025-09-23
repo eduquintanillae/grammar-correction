@@ -10,7 +10,7 @@ class LLM:
     def __init__(self, model_name):
         self.model_name = model_name
 
-        if self.model_name == "gpt-4.1-mini":
+        if self.model_name in ["gpt-4.1-mini", "gpt-5-mini"]:
             self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def generate(self, prompt, system_prompt=None):
