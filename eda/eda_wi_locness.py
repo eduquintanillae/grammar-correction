@@ -149,9 +149,103 @@ def get_error_types(edits):
     return df_top_20_errors
 
 
+def get_corrected_texts_from_json(dataset_df: pd.DataFrame):
+    corrected_texts = []
+
+    for _, row in dataset_df.iterrows():
+        original_text = row["text"]
+        edits = row.get("edits", [])
+
+        if not edits or len(edits) == 0:
+            corrected_texts.append(original_text)
+            continue
+
+        corrected_text = apply_json_edits(original_text, edits)
+        corrected_texts.append(corrected_text)
+
+    return corrected_texts
+
+
+def apply_json_edits(text: str, edits: list) -> str:
+    if not edits or len(edits) == 0:
+        return text
+
+    # Use the first annotator's edits (index 0)
+    # Format: [annotator_id, [[start, end, replacement], [start, end, replacement], ...]]
+    if len(edits[0]) < 2:
+        return text
+
+    edit_list = edits[0][1]  # Get the list of edits from first annotator
+
+    # Sort edits by start position in reverse order to avoid index shifting
+    sorted_edits = sorted(edit_list, key=lambda x: x[0], reverse=True)
+
+    corrected_text = text
+
+    for edit in sorted_edits:
+        if len(edit) < 3:
+            continue
+
+        start, end, replacement = edit[0], edit[1], edit[2]
+
+        # Handle different replacement types
+        if replacement is None or replacement == "":
+            # Deletion: remove text from start to end
+            corrected_text = corrected_text[:start] + corrected_text[end:]
+        else:
+            # Replacement or insertion
+            corrected_text = corrected_text[:start] + replacement + corrected_text[end:]
+
+    return corrected_text
+
+
+def get_corrected_texts_from_m2(dataset_df: pd.DataFrame):
+    corrected_texts = []
+
+    for _, row in dataset_df.iterrows():
+        text = row["text"]
+        edits = row["edits"]
+
+        if not edits:
+            corrected_texts.append(text)
+            continue
+
+        text_tokens = text.split()
+        offset = 0
+
+        for edit in edits:
+            parts = edit.split("|||")
+            if len(parts) < 3:
+                continue
+
+            span = parts[0].strip()
+            correction = parts[2].strip()
+
+            try:
+                start, end = map(int, span.split())
+                start += offset
+                end += offset
+
+                correction_tokens = correction.split() if correction != "-NONE-" else []
+                text_tokens[start:end] = correction_tokens
+
+                offset += len(correction_tokens) - (end - start)
+
+            except ValueError:
+                continue
+
+        corrected_text = " ".join(text_tokens)
+        corrected_texts.append(corrected_text)
+
+    return corrected_texts
+
+
 if __name__ == "__main__":
     keys = ["A.train", "A.dev", "B.train", "B.dev", "C.train", "C.dev", "N.dev"]
     df = load_json_files(keys)
+    corrected_texts = get_corrected_texts_from_json(df)
+    df["corrected_text"] = corrected_texts
+    print(df.shape)
     distribution_df = get_level_type_distribution(df)
     length_stats_df = analyze_text_lengths(df)
     print("--- JSON File Analysis ---")
@@ -164,6 +258,7 @@ if __name__ == "__main__":
     m2_df = load_m2_files(keys)
     m2_distribution_df = get_level_type_distribution(m2_df)
     error_types_df = get_error_types(m2_df["edits"])
+    m2_df["corrected_text"] = get_corrected_texts_from_m2(m2_df)
     print("\n\n--- M2 File Analysis ---")
     print(f"\nNumber of entries: {m2_df.shape[0]}")
     print("\nM2 File Distribution by Level and Type:")
