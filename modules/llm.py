@@ -25,11 +25,13 @@ class LLM:
                     "GPU not available for T5 model. Please use a CPU-compatible model."
                 )
 
-    def generate(self, prompt, system_prompt=None):
+    def generate(self, text, prompt, system_prompt=None):
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
+
+        prompt = prompt.format(text=text)
 
         initial_time = time.time()
         if self.model_name == "gpt-4.1-mini":
@@ -39,6 +41,7 @@ class LLM:
                 max_tokens=1500,
                 stream=False,
             )
+            model_response = response.choices[0].message.content.strip()
         elif self.model_name == "gpt-5-mini":
             response = self.client.chat.completions.create(
                 model=self.model_name,
@@ -46,11 +49,13 @@ class LLM:
                 max_completion_tokens=1500,
                 stream=False,
             )
+            model_response = response.choices[0].message.content.strip()
         elif "t5" in self.model_name:
-            input_text = "grammar: " + prompt
+            input_text = f"grammar: {text}"
             input_ids = self.tokenizer.encode(
                 input_text, return_tensors="pt", max_length=256, truncation=True
             )
+
             output = self.model.generate(
                 input_ids,
                 max_length=256,
@@ -61,7 +66,6 @@ class LLM:
             model_response = self.tokenizer.decode(output[0], skip_special_tokens=True)
         total_time = time.time() - initial_time
 
-        model_response = response.choices[0].message.content.strip()
         results = {
             "model_response": model_response,
             "total_time": total_time,

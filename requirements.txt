@@ -6,3 +6,5 @@ matplotlib==3.10.6
 seaborn==0.13.2
 errant==3.0.0
 fastapi==0.117.1
+transformers==4.56.2
+torch==2.8.0

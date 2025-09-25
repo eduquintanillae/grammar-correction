@@ -29,6 +29,7 @@ class GrammarErrorCorrector:
         self.user_prompt = prompt
 
     def correct(self, text):
-        prompt = self.user_prompt.format(text=text)
-        response = self.llm.generate(prompt=prompt, system_prompt=self.system_prompt)
+        response = self.llm.generate(
+            text=text, prompt=self.user_prompt, system_prompt=self.system_prompt
+        )
         return response
