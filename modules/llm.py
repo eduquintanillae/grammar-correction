@@ -2,6 +2,8 @@ from openai import OpenAI
 import time
 import os
 import dotenv
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+import torch
 
 dotenv.load_dotenv()
 
@@ -12,6 +14,16 @@ class LLM:
 
         if self.model_name in ["gpt-4.1-mini", "gpt-5-mini"]:
             self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        elif "t5" in self.model_name:
+            if torch.cuda.is_available():
+                print("Using GPU for T5 model")
+                os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+                self.model = T5ForConditionalGeneration.from_pretrained(self.model_name)
+                self.tokenizer = T5Tokenizer.from_pretrained(self.model_name)
+            else:
+                raise EnvironmentError(
+                    "GPU not available for T5 model. Please use a CPU-compatible model."
+                )
 
     def generate(self, prompt, system_prompt=None):
         messages = []
@@ -34,14 +46,24 @@ class LLM:
                 max_completion_tokens=1500,
                 stream=False,
             )
+        elif "t5" in self.model_name:
+            input_text = "grammar: " + prompt
+            input_ids = self.tokenizer.encode(
+                input_text, return_tensors="pt", max_length=256, truncation=True
+            )
+            output = self.model.generate(
+                input_ids,
+                max_length=256,
+                num_beams=5,
+                early_stopping=True,
+                repetition_penalty=2.5,
+            )
+            model_response = self.tokenizer.decode(output[0], skip_special_tokens=True)
         total_time = time.time() - initial_time
 
         model_response = response.choices[0].message.content.strip()
         results = {
             "model_response": model_response,
-            "prompt_tokens": response.usage.prompt_tokens,
-            "completion_tokens": response.usage.completion_tokens,
-            "total_tokens": response.usage.total_tokens,
             "total_time": total_time,
         }
 
