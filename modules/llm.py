@@ -29,9 +29,8 @@ class LLM:
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
-
         prompt = prompt.format(text=text)
+        messages.append({"role": "user", "content": prompt})
 
         initial_time = time.time()
         if self.model_name == "gpt-4.1-mini":

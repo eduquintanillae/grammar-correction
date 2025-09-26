@@ -92,6 +92,15 @@ With overall scores of:
 - **GPT-4.1-mini**: Mean Errant F1 Score: 0.135, GLEU: 0.747
 - **T5-small**: Mean Errant F1 Score: 0.156, GLEU: 0.801
 
+Additionally to the quality of the results, I also measured the time it took for each model to make predictions on the medical subset. The results were as follows:
+| Model          | Average Time per Text       |
+|----------------|-----------------------------|
+| GPT-4.1-mini   | 0.822 seconds               |
+| T5-small       | 1.454 seconds               |
+
+Resulting in a speedup of **1.77x** when using GPT-4.1-mini over T5-small.
+This could be due to the overhead of encoding and decoding with the T5 tokenizer, as well as the hardware differences (available gpu vs API calls).
+
 ### Difficulties correcting grammar errors
 While both models showed proficiency in correcting common grammatical errors, they struggled with:
 - Beginning of sentence article corrections (e.g., "The patient", "A doctor").
